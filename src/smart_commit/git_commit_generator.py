@@ -63,17 +63,28 @@ class GitCommitGenerator:
     @staticmethod
     def _find_git_root() -> Path:
         """
-        Finds the root directory of the git repository using `git rev-parse --show-toplevel`.
+        Finds the root directory of the git repository by searching upwards for a `.git` directory.
         This allows the script to be run from any subdirectory of the repository.
         """
+        current_path = Path.cwd().resolve()
+
+        while True:
+            if (current_path / ".git").is_dir():
+                return current_path
+
+            if current_path.parent == current_path:
+                break
+
+            current_path = current_path.parent
+
+        # If no .git directory was found, fall back to the git command for robustness
+        # This handles cases like worktrees or running from a detached .git directory
         try:
-            # It's a standard, reliable way to find the root directory of a warehouse #
             git_root_str = subprocess.check_output(
                 ["git", "rev-parse", "--show-toplevel"], text=True, stderr=subprocess.PIPE
             ).strip()
             return Path(git_root_str)
-        except subprocess.CalledProcessError:
-            # If this command fails, neither the current directory nor its parent is a Git repository
+        except (subprocess.CalledProcessError, FileNotFoundError):
             console.print(
                 "[red]✗[/red] Fatal: Not a git repository (or any of the parent directories).",
                 style="red",
@@ -479,12 +490,14 @@ class GitCommitGenerator:
             with console.status("[bold green]Applying commit changes..."):
                 # Get all changed files (including excluded ones for actual commit)
                 all_changed_files = []
-                
+
                 # Get already staged files
                 try:
                     staged_files = self._run_command(["git", "diff", "--cached", "--name-only"])
                     if staged_files.strip():
-                        all_changed_files.extend(f.strip() for f in staged_files.split("\n") if f.strip())
+                        all_changed_files.extend(
+                            f.strip() for f in staged_files.split("\n") if f.strip()
+                        )
                 except subprocess.CalledProcessError:
                     pass
 
@@ -492,13 +505,17 @@ class GitCommitGenerator:
                 try:
                     modified_files = self._run_command(["git", "diff", "--name-only", "HEAD"])
                     if modified_files.strip():
-                        all_changed_files.extend(f.strip() for f in modified_files.split("\n") if f.strip())
+                        all_changed_files.extend(
+                            f.strip() for f in modified_files.split("\n") if f.strip()
+                        )
                 except subprocess.CalledProcessError:
                     # Fallback for initial commit
                     try:
                         modified_files = self._run_command(["git", "diff", "--name-only"])
                         if modified_files.strip():
-                            all_changed_files.extend(f.strip() for f in modified_files.split("\n") if f.strip())
+                            all_changed_files.extend(
+                                f.strip() for f in modified_files.split("\n") if f.strip()
+                            )
                     except subprocess.CalledProcessError:
                         pass
 
@@ -508,14 +525,16 @@ class GitCommitGenerator:
                         ["git", "ls-files", "--others", "--exclude-standard"]
                     )
                     if untracked_files.strip():
-                        all_changed_files.extend(f.strip() for f in untracked_files.split("\n") if f.strip())
+                        all_changed_files.extend(
+                            f.strip() for f in untracked_files.split("\n") if f.strip()
+                        )
                 except subprocess.CalledProcessError:
                     pass
 
                 # Remove duplicates and filter out .gitignore patterns (but keep excluded patterns)
                 ignore_patterns = self._get_ignore_patterns()
                 final_files = []
-                
+
                 for file_path in set(all_changed_files):
                     # Only filter out .gitignore patterns, but keep EXCLUDED_FILE_PATTERNS
                     is_gitignored = False
@@ -523,7 +542,7 @@ class GitCommitGenerator:
                         if fnmatch.fnmatch(file_path, pattern):
                             is_gitignored = True
                             break
-                    
+
                     if not is_gitignored:
                         final_files.append(file_path)
 
@@ -531,12 +550,16 @@ class GitCommitGenerator:
                     # Show what files will be committed
                     valid_files = self._get_valid_files()  # Files that were analyzed by LLM
                     excluded_from_analysis = [f for f in final_files if f not in valid_files]
-                    
+
                     console.print(f"[dim]Staging {len(final_files)} files for commit:[/dim]")
                     if excluded_from_analysis:
-                        console.print(f"[dim]  • {len(valid_files)} files were analyzed by LLM[/dim]")
-                        console.print(f"[dim]  • {len(excluded_from_analysis)} files excluded from analysis but included in commit: {', '.join(excluded_from_analysis[:3])}{'...' if len(excluded_from_analysis) > 3 else ''}[/dim]")
-                    
+                        console.print(
+                            f"[dim]  • {len(valid_files)} files were analyzed by LLM[/dim]"
+                        )
+                        console.print(
+                            f"[dim]  • {len(excluded_from_analysis)} files excluded from analysis but included in commit: {', '.join(excluded_from_analysis[:3])}{'...' if len(excluded_from_analysis) > 3 else ''}[/dim]"
+                        )
+
                     # Stage all final files
                     self._run_command(["git", "add"] + final_files)
                 else:

@@ -329,66 +329,69 @@ class GitCommitGenerator:
 
         console.print()
 
-        # Generate comprehensive diff for all valid files
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[bold blue]Collecting changes"),
-            BarColumn(),
-            TaskProgressColumn(),
-            console=console,
-            transient=False,
-        ) as progress:
+        all_diffs = []
 
-            task = progress.add_task("Processing files", total=len(valid_files))
-            all_diffs = []
+        # Separate tracked and untracked files for different processing
+        tracked_files = []
+        untracked_files_list = []
 
-            # Get comprehensive diff that includes all types of changes
+        for file_path in valid_files:
+            if file_path in untracked_files_set:
+                untracked_files_list.append(file_path)
+            else:
+                tracked_files.append(file_path)
+
+        # Get comprehensive diff for tracked files only
+        if tracked_files:
             try:
-                # Try to get diff against HEAD (includes staged and unstaged changes)
-                diff_output = self._run_command(["git", "diff", "HEAD"] + valid_files)
+                # Use -- separator to avoid path ambiguity
+                diff_output = self._run_command(["git", "diff", "HEAD", "--"] + tracked_files)
+                if diff_output:
+                    all_diffs.append(diff_output)
             except subprocess.CalledProcessError:
                 # Fallback for initial commit scenario
-                diff_output = self._run_command(["git", "diff", "--cached"] + valid_files)
-                unstaged_diff = self._run_command(["git", "diff"] + valid_files)
-                if unstaged_diff:
-                    diff_output = (
-                        diff_output + "\n" + unstaged_diff if diff_output else unstaged_diff
+                try:
+                    diff_output = self._run_command(
+                        ["git", "diff", "--cached", "--"] + tracked_files
                     )
+                    if diff_output:
+                        all_diffs.append(diff_output)
+                except subprocess.CalledProcessError:
+                    pass
 
-            if diff_output:
-                all_diffs.append(diff_output)
+                try:
+                    unstaged_diff = self._run_command(["git", "diff", "--"] + tracked_files)
+                    if unstaged_diff:
+                        all_diffs.append(unstaged_diff)
+                except subprocess.CalledProcessError:
+                    pass
 
-            # Handle new untracked files that won't appear in git diff
-            for file_path in valid_files:
-                if file_path not in diff_output:
-                    try:
-                        file_full_path = self.repo_path / file_path
-                        if file_full_path.exists() and file_full_path.is_file():
-                            with open(file_full_path, "r", encoding="utf-8", errors="ignore") as f:
-                                content = f.read()
+        # Handle new untracked files separately
+        for file_path in untracked_files_list:
+            try:
+                file_full_path = self.repo_path / file_path
+                if file_full_path.exists() and file_full_path.is_file():
+                    with open(file_full_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
 
-                            # Create diff format for new files
-                            new_file_diff = f"diff --git a/{file_path} b/{file_path}\n"
-                            new_file_diff += f"new file mode 100644\n"
-                            new_file_diff += f"index 0000000..0000000\n"
-                            new_file_diff += f"--- /dev/null\n"
-                            new_file_diff += f"+++ b/{file_path}\n"
+                    # Create diff format for new files
+                    new_file_diff = f"diff --git a/{file_path} b/{file_path}\n"
+                    new_file_diff += f"new file mode 100644\n"
+                    new_file_diff += f"index 0000000..0000000\n"
+                    new_file_diff += f"--- /dev/null\n"
+                    new_file_diff += f"+++ b/{file_path}\n"
 
-                            for line in content.splitlines():
-                                new_file_diff += f"+{line}\n"
+                    for line in content.splitlines():
+                        new_file_diff += f"+{line}\n"
 
-                            all_diffs.append(new_file_diff)
-                    except (UnicodeDecodeError, IOError) as e:
-                        console.print(
-                            f"[dim]Skipping binary/unreadable file: {file_path} ({e})[/dim]"
-                        )
-                        # For binary files, add a simple marker
-                        new_file_diff = f"diff --git a/{file_path} b/{file_path}\n"
-                        new_file_diff += f"new file mode 100644\n"
-                        new_file_diff += f"Binary file {file_path} added\n"
-                        all_diffs.append(new_file_diff)
-
-                progress.advance(task)
+                    all_diffs.append(new_file_diff)
+            except (UnicodeDecodeError, IOError) as e:
+                console.print(f"[dim]Skipping binary/unreadable file: {file_path} ({e})[/dim]")
+                # For binary files, add a simple marker
+                new_file_diff = f"diff --git a/{file_path} b/{file_path}\n"
+                new_file_diff += f"new file mode 100644\n"
+                new_file_diff += f"Binary file {file_path} added\n"
+                all_diffs.append(new_file_diff)
 
         if not all_diffs:
             console.print("[yellow]⚠[/yellow] No changes found in valid files.")

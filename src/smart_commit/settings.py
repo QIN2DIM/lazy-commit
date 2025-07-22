@@ -13,8 +13,9 @@ class SmartCommitSettings(BaseSettings):
     LAZY_COMMIT_OPENAI_BASE_URL: str | None = Field(
         default=None,
         description="""
-        It only needs to be changed when using alternative providers like OpenRouter.
-        Free models available at https://openrouter.ai/api/v1
+        It only needs to be changed when using alternative providers.
+        Free models available at https://openrouter.ai/api/v1 (OpenRouter) or
+        https://api.siliconflow.cn/v1 (SiliconFlow for Chinese users)
         """,
     )
     LAZY_COMMIT_OPENAI_API_KEY: SecretStr | None = Field(

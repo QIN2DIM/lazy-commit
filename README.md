@@ -44,6 +44,11 @@ export LAZY_COMMIT_OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 export LAZY_COMMIT_OPENAI_API_KEY="sk-or-v1-xxx"
 export LAZY_COMMIT_OPENAI_MODEL_NAME="deepseek/deepseek-chat-v3-0324:free"
 
+# For Chinese users - free models via SiliconFlow
+export LAZY_COMMIT_OPENAI_BASE_URL="https://api.siliconflow.cn/v1"
+export LAZY_COMMIT_OPENAI_API_KEY="sk-xxx"
+export LAZY_COMMIT_OPENAI_MODEL_NAME="THUDM/GLM-Z1-9B-0414"
+
 # Optional: Set maximum context size (default: 32000)
 export LAZY_COMMIT_MAX_CONTEXT_SIZE=32000
 ```
@@ -52,10 +57,18 @@ export LAZY_COMMIT_MAX_CONTEXT_SIZE=32000
 
 You can also create a `.env` file in your project root:
 
+**For OpenRouter (free models):**
 ```env
 LAZY_COMMIT_OPENAI_BASE_URL=https://openrouter.ai/api/v1
 LAZY_COMMIT_OPENAI_API_KEY=sk-or-v1-xxx
 LAZY_COMMIT_OPENAI_MODEL_NAME=deepseek/deepseek-chat-v3-0324:free
+```
+
+**For Chinese users - SiliconFlow (free models):**
+```env
+LAZY_COMMIT_OPENAI_BASE_URL=https://api.siliconflow.cn/v1
+LAZY_COMMIT_OPENAI_API_KEY=sk-xxx
+LAZY_COMMIT_OPENAI_MODEL_NAME=THUDM/GLM-Z1-9B-0414
 ```
 
 ## Usage

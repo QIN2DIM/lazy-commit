@@ -1,5 +1,5 @@
 [project]
-name = "smart-commit"
+name = "lazy-commit"
 version = "0.1.0"
 description = "A git commit message generator for personal use."
 readme = "README.md"

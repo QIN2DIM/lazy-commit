@@ -42,7 +42,7 @@ export LAZY_COMMIT_OPENAI_MODEL_NAME="gpt-4o-mini"
 # For free models via OpenRouter
 export LAZY_COMMIT_OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 export LAZY_COMMIT_OPENAI_API_KEY="sk-or-v1-xxx"
-export LAZY_COMMIT_OPENAI_MODEL_NAME="qwen/qwen3-235b-a22b-07-25:free"
+export LAZY_COMMIT_OPENAI_MODEL_NAME="deepseek/deepseek-chat-v3-0324:free"
 
 # Optional: Set maximum context size (default: 32000)
 export LAZY_COMMIT_MAX_CONTEXT_SIZE=32000
@@ -55,7 +55,7 @@ You can also create a `.env` file in your project root:
 ```env
 LAZY_COMMIT_OPENAI_BASE_URL=https://openrouter.ai/api/v1
 LAZY_COMMIT_OPENAI_API_KEY=sk-or-v1-xxx
-LAZY_COMMIT_OPENAI_MODEL_NAME=qwen/qwen3-235b-a22b-07-25:free
+LAZY_COMMIT_OPENAI_MODEL_NAME=deepseek/deepseek-chat-v3-0324:free
 ```
 
 ## Usage

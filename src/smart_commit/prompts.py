@@ -84,7 +84,6 @@ Now, based on the provided git changes, generate a commit message in the specifi
 """
 
 USER_PROMPT_TEMPLATE = """
-/no_think
 Generate a git commit message for the following changes.
 
 ## Git Branch Name:

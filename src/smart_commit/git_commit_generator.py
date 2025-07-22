@@ -41,20 +41,21 @@ console = Console()
 class GitCommitGenerator:
     """A class to generate git commit messages."""
 
-    def __init__(self, auto_push: bool = False):
+    def __init__(self, auto_push: bool = False, auto_add: bool = False):
         """
         Initializes the generator. Automatically finds the git repository root.
         """
         with console.status("[bold green]Initializing GitCommitGenerator..."):
             self.repo_path = self._find_git_root()
-            self.max_context = settings.SMART_COMMIT_MAX_CONTEXT_SIZE
+            self.max_context = settings.LAZY_COMMIT_MAX_CONTEXT_SIZE
             self.auto_push = auto_push
+            self.auto_add = auto_add
 
             self._client = OpenAI(
-                api_key=settings.SMART_COMMIT_OPENAI_API_KEY.get_secret_value(),
-                base_url=settings.SMART_COMMIT_OPENAI_BASE_URL,
+                api_key=settings.LAZY_COMMIT_OPENAI_API_KEY.get_secret_value(),
+                base_url=settings.LAZY_COMMIT_OPENAI_BASE_URL,
             )
-            self._model = settings.SMART_COMMIT_OPENAI_MODEL_NAME
+            self._model = settings.LAZY_COMMIT_OPENAI_MODEL_NAME
 
         console.print(
             f"[green]✓[/green] GitCommitGenerator initialized for repository: {self.repo_path}"
@@ -63,28 +64,31 @@ class GitCommitGenerator:
     @staticmethod
     def _find_git_root() -> Path:
         """
-        Finds the root directory of the git repository by searching upwards for a `.git` directory.
-        This allows the script to be run from any subdirectory of the repository.
+        Finds the root directory of the git repository using git command.
+        This handles worktrees, submodules, and allows running from any subdirectory.
         """
-        current_path = Path.cwd().resolve()
-
-        while True:
-            if (current_path / ".git").is_dir():
-                return current_path
-
-            if current_path.parent == current_path:
-                break
-
-            current_path = current_path.parent
-
-        # If no .git directory was found, fall back to the git command for robustness
-        # This handles cases like worktrees or running from a detached .git directory
+        # Use git command as primary method - it's more reliable and handles all git scenarios
         try:
             git_root_str = subprocess.check_output(
-                ["git", "rev-parse", "--show-toplevel"], text=True, stderr=subprocess.PIPE
+                ["git", "rev-parse", "--show-toplevel"],
+                text=True,
+                stderr=subprocess.PIPE,
+                cwd=Path.cwd(),
             ).strip()
             return Path(git_root_str)
         except (subprocess.CalledProcessError, FileNotFoundError):
+            # Fallback to manual search for cases where git command fails
+            current_path = Path.cwd().resolve()
+
+            # Check exists() instead of is_dir() to handle worktrees
+            while True:
+                if (current_path / ".git").exists():
+                    return current_path
+
+                if current_path.parent == current_path:
+                    break
+
+                current_path = current_path.parent
             console.print(
                 "[red]✗[/red] Fatal: Not a git repository (or any of the parent directories).",
                 style="red",
@@ -483,7 +487,7 @@ class GitCommitGenerator:
         message_str = commit_message.to_git_message()
         console.print(f"\n{message_str}\n", style="dim")
 
-        if not self.auto_push:
+        if not self.auto_add:
             return
 
         try:
@@ -572,7 +576,8 @@ class GitCommitGenerator:
             console.print("[green]✓[/green] Commit applied successfully!")
 
             # Push if auto-push is enabled
-            self._push_changes()
+            if self.auto_push:
+                self._push_changes()
 
         except subprocess.CalledProcessError as e:
             console.print(

@@ -11,7 +11,7 @@ app = typer.Typer()
 @app.command()
 def main(
     push: bool = typer.Option(False, "--push", help="Auto-push after commit"),
-    add: bool = typer.Option(False, "--add", help="Only stage and commit without pushing")
+    add: bool = typer.Option(False, "--add", help="Only stage and commit without pushing"),
 ):
     """Generate a git commit message and apply commit with optional auto-push."""
     # Check if you are in a git repository

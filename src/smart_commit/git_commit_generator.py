@@ -16,7 +16,6 @@ import typer
 from openai import OpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.text import Text
 
 from smart_commit.models import CommitMessage, LLMInput
@@ -376,9 +375,9 @@ class GitCommitGenerator:
 
                     # Create diff format for new files
                     new_file_diff = f"diff --git a/{file_path} b/{file_path}\n"
-                    new_file_diff += f"new file mode 100644\n"
-                    new_file_diff += f"index 0000000..0000000\n"
-                    new_file_diff += f"--- /dev/null\n"
+                    new_file_diff += "new file mode 100644\n"
+                    new_file_diff += "index 0000000..0000000\n"
+                    new_file_diff += "--- /dev/null\n"
                     new_file_diff += f"+++ b/{file_path}\n"
 
                     for line in content.splitlines():
@@ -389,7 +388,7 @@ class GitCommitGenerator:
                 console.print(f"[dim]Skipping binary/unreadable file: {file_path} ({e})[/dim]")
                 # For binary files, add a simple marker
                 new_file_diff = f"diff --git a/{file_path} b/{file_path}\n"
-                new_file_diff += f"new file mode 100644\n"
+                new_file_diff += "new file mode 100644\n"
                 new_file_diff += f"Binary file {file_path} added\n"
                 all_diffs.append(new_file_diff)
 

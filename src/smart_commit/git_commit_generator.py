@@ -23,7 +23,8 @@ from smart_commit.models import CommitMessage, LLMInput
 from smart_commit.prompts import SYSTEM_INSTRUCTIONS, USER_PROMPT_TEMPLATE
 from smart_commit.settings import settings
 
-# Files to completely exclude from diff generation and commit
+# Files to exclude from LLM analysis (diff generation) but still allow in commits
+# These files create noise in commit message generation due to their verbose changes
 EXCLUDED_FILE_PATTERNS = [
     "*.lock",  # All lock files
     "uv.lock",
@@ -464,7 +465,9 @@ class GitCommitGenerator:
 
     def _apply_commit(self, commit_message: CommitMessage):
         """
-        Stages only the valid files that were analyzed and then applies the commit.
+        Stages all changed files (including excluded files) and then applies the commit.
+        The LLM analysis only considered valid files to avoid noise, but we should commit
+        all changed files including those that were manually staged or excluded from analysis.
         """
         message_str = commit_message.to_git_message()
         console.print(f"\n{message_str}\n", style="dim")
@@ -474,14 +477,70 @@ class GitCommitGenerator:
 
         try:
             with console.status("[bold green]Applying commit changes..."):
-                valid_files = self._get_valid_files()
+                # Get all changed files (including excluded ones for actual commit)
+                all_changed_files = []
+                
+                # Get already staged files
+                try:
+                    staged_files = self._run_command(["git", "diff", "--cached", "--name-only"])
+                    if staged_files.strip():
+                        all_changed_files.extend(f.strip() for f in staged_files.split("\n") if f.strip())
+                except subprocess.CalledProcessError:
+                    pass
 
-                if valid_files:
-                    console.print(f"[dim]Staging analyzed files: {', '.join(valid_files)}[/dim]")
-                    # Stage only the valid files that were analyzed
-                    self._run_command(["git", "add"] + valid_files)
+                # Get modified files (unstaged)
+                try:
+                    modified_files = self._run_command(["git", "diff", "--name-only", "HEAD"])
+                    if modified_files.strip():
+                        all_changed_files.extend(f.strip() for f in modified_files.split("\n") if f.strip())
+                except subprocess.CalledProcessError:
+                    # Fallback for initial commit
+                    try:
+                        modified_files = self._run_command(["git", "diff", "--name-only"])
+                        if modified_files.strip():
+                            all_changed_files.extend(f.strip() for f in modified_files.split("\n") if f.strip())
+                    except subprocess.CalledProcessError:
+                        pass
+
+                # Get untracked files
+                try:
+                    untracked_files = self._run_command(
+                        ["git", "ls-files", "--others", "--exclude-standard"]
+                    )
+                    if untracked_files.strip():
+                        all_changed_files.extend(f.strip() for f in untracked_files.split("\n") if f.strip())
+                except subprocess.CalledProcessError:
+                    pass
+
+                # Remove duplicates and filter out .gitignore patterns (but keep excluded patterns)
+                ignore_patterns = self._get_ignore_patterns()
+                final_files = []
+                
+                for file_path in set(all_changed_files):
+                    # Only filter out .gitignore patterns, but keep EXCLUDED_FILE_PATTERNS
+                    is_gitignored = False
+                    for pattern in ignore_patterns:
+                        if fnmatch.fnmatch(file_path, pattern):
+                            is_gitignored = True
+                            break
+                    
+                    if not is_gitignored:
+                        final_files.append(file_path)
+
+                if final_files:
+                    # Show what files will be committed
+                    valid_files = self._get_valid_files()  # Files that were analyzed by LLM
+                    excluded_from_analysis = [f for f in final_files if f not in valid_files]
+                    
+                    console.print(f"[dim]Staging {len(final_files)} files for commit:[/dim]")
+                    if excluded_from_analysis:
+                        console.print(f"[dim]  • {len(valid_files)} files were analyzed by LLM[/dim]")
+                        console.print(f"[dim]  • {len(excluded_from_analysis)} files excluded from analysis but included in commit: {', '.join(excluded_from_analysis[:3])}{'...' if len(excluded_from_analysis) > 3 else ''}[/dim]")
+                    
+                    # Stage all final files
+                    self._run_command(["git", "add"] + final_files)
                 else:
-                    console.print("[yellow]⚠[/yellow] No valid files to commit.")
+                    console.print("[yellow]⚠[/yellow] No files to commit.")
                     return
 
                 # Commit with message

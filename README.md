@@ -42,7 +42,7 @@ export LAZY_COMMIT_OPENAI_MODEL_NAME="gpt-4o-mini"
 # For free models via OpenRouter
 export LAZY_COMMIT_OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 export LAZY_COMMIT_OPENAI_API_KEY="sk-or-v1-xxx"
-export LAZY_COMMIT_OPENAI_MODEL_NAME="deepseek/deepseek-chat-v3-0324:free"
+export LAZY_COMMIT_OPENAI_MODEL_NAME="moonshotai/kimi-k2:free"
 
 # For Chinese users - free models via SiliconFlow
 export LAZY_COMMIT_OPENAI_BASE_URL="https://api.siliconflow.cn/v1"
@@ -61,7 +61,7 @@ You can also create a `.env` file in your project root:
 ```env
 LAZY_COMMIT_OPENAI_BASE_URL=https://openrouter.ai/api/v1
 LAZY_COMMIT_OPENAI_API_KEY=sk-or-v1-xxx
-LAZY_COMMIT_OPENAI_MODEL_NAME=deepseek/deepseek-chat-v3-0324:free
+LAZY_COMMIT_OPENAI_MODEL_NAME=moonshotai/kimi-k2:free
 ```
 
 **For Chinese users - SiliconFlow (free models):**

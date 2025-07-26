@@ -9,8 +9,6 @@ The message must be clear, concise, and provide enough context for other develop
 <type>(<scope>): <title>
 
 <body>
-
-<footer>
 ```
 
 **1. Title:**
@@ -24,9 +22,6 @@ The message must be clear, concise, and provide enough context for other develop
    - Provides more context, explaining the "what" and "why" of the change.
    - Use bullet points for lists.
 
-**3. Footer (optional):**
-   - For referencing issues (e.g., `Closes: #123`) or breaking changes (`BREAKING CHANGE:`).
-
 ## Few-shot Examples
 
 [Example 1: A new feature]
@@ -38,8 +33,7 @@ The message must be clear, concise, and provide enough context for other develop
     "type": "feat",
     "scope": "api",
     "title": "add user creation endpoint",
-    "body": "This commit introduces a new endpoint `POST /users` to allow for the creation of new users. It includes input validation and basic error handling.",
-    "footer": "Closes: #42"
+    "body": "This commit introduces a new endpoint `POST /users` to allow for the creation of new users. It includes input validation and basic error handling."
   }
   ```
 
@@ -54,8 +48,7 @@ The message must be clear, concise, and provide enough context for other develop
     "type": "fix",
     "scope": "payment",
     "title": "correct off-by-one error in tax calculation",
-    "body": "The tax calculation was using a wrong index, leading to an off-by-one error. This has been corrected by adjusting the loop boundary.",
-    "footer": ""
+    "body": "The tax calculation was using a wrong index, leading to an off-by-one error. This has been corrected by adjusting the loop boundary."
   }
   ```
 
@@ -71,8 +64,7 @@ The message must be clear, concise, and provide enough context for other develop
     "type": "refactor",
     "scope": "core",
     "title": "replace LegacyManager with NewService",
-    "body": "Refactored the core module to use the `NewService` class instead of the deprecated `LegacyManager`. This improves performance and readability without changing external behavior.",
-    "footer": ""
+    "body": "Refactored the core module to use the `NewService` class instead of the deprecated `LegacyManager`. This improves performance and readability without changing external behavior."
   }
   ```
 

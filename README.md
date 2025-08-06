@@ -45,7 +45,7 @@ export LAZY_COMMIT_OPENAI_API_KEY="sk-or-v1-xxx"
 export LAZY_COMMIT_OPENAI_MODEL_NAME="moonshotai/kimi-k2:free"
 
 # For Chinese users - free models via ModelScope
-export LAZY_COMMIT_OPENAI_BASE_URL="[https://api.siliconflow.cn/v1](https://api-inference.modelscope.cn/v1)"
+export LAZY_COMMIT_OPENAI_BASE_URL="https://api-inference.modelscope.cn/v1"
 export LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"
 export LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-Coder-480B-A35B-Instruct"
 
@@ -66,7 +66,7 @@ LAZY_COMMIT_OPENAI_MODEL_NAME=moonshotai/kimi-k2:free
 
 **For Chinese users - SiliconFlow (free models):**
 ```env
-LAZY_COMMIT_OPENAI_BASE_URL="[https://api.siliconflow.cn/v1](https://api-inference.modelscope.cn/v1)"
+LAZY_COMMIT_OPENAI_BASE_URL="https://api-inference.modelscope.cn/v1"
 LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"
 LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-Coder-480B-A35B-Instruct"
 ```

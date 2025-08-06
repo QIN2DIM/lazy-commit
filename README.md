@@ -64,7 +64,7 @@ LAZY_COMMIT_OPENAI_API_KEY=sk-or-v1-xxx
 LAZY_COMMIT_OPENAI_MODEL_NAME=moonshotai/kimi-k2:free
 ```
 
-**For Chinese users - SiliconFlow (free models):**
+**For Chinese users - [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-Coder-480B-A35B-Instruct) (free models):**
 ```env
 LAZY_COMMIT_OPENAI_BASE_URL="https://api-inference.modelscope.cn/v1"
 LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"

@@ -44,10 +44,10 @@ export LAZY_COMMIT_OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 export LAZY_COMMIT_OPENAI_API_KEY="sk-or-v1-xxx"
 export LAZY_COMMIT_OPENAI_MODEL_NAME="moonshotai/kimi-k2:free"
 
-# For Chinese users - free models via SiliconFlow
-export LAZY_COMMIT_OPENAI_BASE_URL="https://api.siliconflow.cn/v1"
-export LAZY_COMMIT_OPENAI_API_KEY="sk-xxx"
-export LAZY_COMMIT_OPENAI_MODEL_NAME="THUDM/GLM-Z1-9B-0414"
+# For Chinese users - free models via ModelScope
+export LAZY_COMMIT_OPENAI_BASE_URL="[https://api.siliconflow.cn/v1](https://api-inference.modelscope.cn/v1)"
+export LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"
+export LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-Coder-480B-A35B-Instruct"
 
 # Optional: Set maximum context size (default: 32000)
 export LAZY_COMMIT_MAX_CONTEXT_SIZE=32000
@@ -66,9 +66,9 @@ LAZY_COMMIT_OPENAI_MODEL_NAME=moonshotai/kimi-k2:free
 
 **For Chinese users - SiliconFlow (free models):**
 ```env
-LAZY_COMMIT_OPENAI_BASE_URL=https://api.siliconflow.cn/v1
-LAZY_COMMIT_OPENAI_API_KEY=sk-xxx
-LAZY_COMMIT_OPENAI_MODEL_NAME=THUDM/GLM-Z1-9B-0414
+LAZY_COMMIT_OPENAI_BASE_URL="[https://api.siliconflow.cn/v1](https://api-inference.modelscope.cn/v1)"
+LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"
+LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-Coder-480B-A35B-Instruct"
 ```
 
 ## Usage

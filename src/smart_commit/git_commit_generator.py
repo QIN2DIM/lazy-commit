@@ -582,8 +582,41 @@ class GitCommitGenerator:
                         self._run_command(["git", "add"] + existing_files)
 
                     # Stage deleted files with git rm
+                    # First, get files that are already staged for deletion to avoid re-staging
                     if deleted_files:
-                        self._run_command(["git", "rm"] + deleted_files)
+                        # Get already staged deleted files
+                        staged_deleted_set = set()
+                        try:
+                            staged_deleted = self._run_command(
+                                ["git", "diff", "--cached", "--name-only", "--diff-filter=D"]
+                            )
+                            if staged_deleted.strip():
+                                staged_deleted_set = set(
+                                    f.strip() for f in staged_deleted.split("\n") if f.strip()
+                                )
+                        except subprocess.CalledProcessError:
+                            pass
+
+                        # Get files that are tracked by git (in the index)
+                        tracked_files_set = set()
+                        try:
+                            tracked_files = self._run_command(["git", "ls-files"])
+                            if tracked_files.strip():
+                                tracked_files_set = set(
+                                    f.strip() for f in tracked_files.split("\n") if f.strip()
+                                )
+                        except subprocess.CalledProcessError:
+                            pass
+
+                        # Filter: only rm files that are tracked and not already staged for deletion
+                        files_to_rm = [
+                            f
+                            for f in deleted_files
+                            if f not in staged_deleted_set and f in tracked_files_set
+                        ]
+
+                        if files_to_rm:
+                            self._run_command(["git", "rm"] + files_to_rm)
                 else:
                     console.print("[yellow]⚠[/yellow] No files to commit.")
                     return

@@ -86,7 +86,6 @@ class CommitMessage(BaseModel):
         return Panel(
             Group(*content_parts),
             title="[bold bright_white]📋 Generated Commit Message[/bold bright_white]",
-            subtitle="[dim]Press Enter to confirm • e to edit • r to regenerate • q to quit[/dim]",
             border_style=type_style["color"],
             padding=(1, 2),
         )

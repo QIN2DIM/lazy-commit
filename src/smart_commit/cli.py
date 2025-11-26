@@ -8,15 +8,27 @@ app = typer.Typer()
 
 @app.command()
 def main(
-    push: bool = typer.Option(False, "--push", help="Auto-push after commit"),
-    add: bool = typer.Option(False, "--add", help="Only stage and commit without pushing"),
+    push: bool = typer.Option(False, "--push", "-p", help="Auto-push after commit"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", "-n", help="Generate message only, copy to clipboard, don't commit"
+    ),
 ):
-    """Generate a git commit message and apply commit with optional auto-push."""
-    # When push is enabled, add is automatically enabled
-    if push:
-        add = True
+    """
+    Generate smart git commit messages with AI.
+
+    \b
+    Usage modes:
+      commit         Auto commit mode - generate and commit automatically
+      commit --push  Auto push mode - generate, commit, and push
+      commit -n      Dry run mode - only generate and copy to clipboard
+    """
+    add = True
+    # Dry run takes precedence
+    if dry_run:
+        add = False
+        push = False
     # GitCommitGenerator._find_git_root() handles finding git root from any subdirectory
-    generator = GitCommitGenerator(auto_push=push, auto_add=add)
+    generator = GitCommitGenerator(auto_push=push, auto_add=add, dry_run=dry_run)
     generator.run()
 
 

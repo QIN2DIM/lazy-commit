@@ -8,19 +8,32 @@
 import fnmatch
 import re
 import subprocess
+from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 
+import pyperclip
 import tiktoken
 import typer
 from openai import OpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 from rich.console import Console
+from rich.prompt import Prompt
 from rich.text import Text
 
 from smart_commit.models import CommitMessage, LLMInput
 from smart_commit.prompts import SYSTEM_INSTRUCTIONS, USER_PROMPT_TEMPLATE
 from smart_commit.settings import settings
+
+
+class UserAction(str, Enum):
+    """User action choices for interactive commit confirmation."""
+
+    CONFIRM = ""  # Enter key
+    EDIT = "e"
+    REGENERATE = "r"
+    COPY = "c"
+    QUIT = "q"
 
 # Files to exclude from LLM analysis (diff generation) but still allow in commits
 # These files create noise in commit message generation due to their verbose changes
@@ -40,15 +53,23 @@ console = Console()
 class GitCommitGenerator:
     """A class to generate git commit messages."""
 
-    def __init__(self, auto_push: bool = False, auto_add: bool = False):
+    def __init__(
+        self, auto_push: bool = False, auto_add: bool = False, dry_run: bool = False
+    ):
         """
         Initializes the generator. Automatically finds the git repository root.
+
+        Args:
+            auto_push: Automatically push after commit.
+            auto_add: Automatically stage and commit without interaction.
+            dry_run: Only generate message, don't commit (interactive mode).
         """
         with console.status("[bold green]Initializing GitCommitGenerator..."):
             self.repo_path = self._find_git_root()
             self.max_context = settings.LAZY_COMMIT_MAX_CONTEXT_SIZE
             self.auto_push = auto_push
             self.auto_add = auto_add
+            self.dry_run = dry_run
 
             self._client = OpenAI(
                 api_key=settings.LAZY_COMMIT_OPENAI_API_KEY.get_secret_value(),
@@ -480,17 +501,152 @@ class GitCommitGenerator:
             full_diff_for_reference=full_diff,
         )
 
-    def _apply_commit(self, commit_message: CommitMessage):
+    def _copy_to_clipboard(self, commit_message: CommitMessage) -> bool:
+        """Copy commit message to clipboard."""
+        try:
+            message_str = commit_message.to_git_message()
+            pyperclip.copy(message_str)
+            console.print("[green]✓[/green] Commit message copied to clipboard!")
+            return True
+        except Exception as e:
+            console.print(f"[yellow]⚠[/yellow] Failed to copy to clipboard: {e}")
+            return False
+
+    def _display_commit_message(self, commit_message: CommitMessage):
+        """Display the commit message in a rich panel format."""
+        console.print()
+        console.print(commit_message.to_rich_panel())
+        console.print()
+
+    def _prompt_user_action(self) -> UserAction:
+        """Prompt user for action with interactive menu."""
+        console.print("[bold]Actions:[/bold]")
+        console.print("  [green]Enter[/green]  → Confirm and commit")
+        console.print("  [cyan]c[/cyan]      → Copy to clipboard")
+        console.print("  [yellow]e[/yellow]      → Edit message manually")
+        console.print("  [blue]r[/blue]      → Regenerate message")
+        console.print("  [red]q[/red]      → Quit without committing")
+        console.print()
+
+        choice = Prompt.ask(
+            "[bold]Your choice[/bold]",
+            choices=["", "c", "e", "r", "q"],
+            default="",
+            show_choices=False,
+        )
+
+        return UserAction(choice)
+
+    def _edit_commit_message(self, commit_message: CommitMessage) -> CommitMessage:
+        """Allow user to edit the commit message interactively."""
+        console.print("\n[bold cyan]Edit Mode[/bold cyan]")
+        console.print("[dim]Leave empty to keep current value[/dim]\n")
+
+        # Edit type
+        new_type = Prompt.ask(
+            f"Type [dim]({commit_message.type})[/dim]",
+            default=commit_message.type,
+        )
+
+        # Edit scope
+        current_scope = commit_message.scope or ""
+        new_scope = Prompt.ask(
+            f"Scope [dim]({current_scope or 'none'})[/dim]",
+            default=current_scope,
+        )
+
+        # Edit title
+        new_title = Prompt.ask(
+            f"Title [dim]({commit_message.title})[/dim]",
+            default=commit_message.title,
+        )
+
+        # Edit body
+        current_body = commit_message.body or ""
+        console.print(f"Body [dim]({current_body[:50] + '...' if len(current_body) > 50 else current_body or 'none'})[/dim]")
+        new_body = Prompt.ask("Enter new body (or press Enter to keep)", default=current_body)
+
+        return CommitMessage(
+            type=new_type,
+            scope=new_scope if new_scope else None,
+            title=new_title,
+            body=new_body if new_body else None,
+        )
+
+    def _interactive_confirm(
+        self, commit_message: CommitMessage, llm_input: LLMInput
+    ) -> tuple[CommitMessage | None, bool]:
+        """
+        Interactive confirmation loop for commit message.
+
+        Returns:
+            tuple: (final_commit_message, should_commit)
+        """
+        current_message = commit_message
+
+        while True:
+            self._display_commit_message(current_message)
+            action = self._prompt_user_action()
+
+            if action == UserAction.CONFIRM:
+                return current_message, True
+
+            elif action == UserAction.COPY:
+                self._copy_to_clipboard(current_message)
+                # Continue the loop to allow further actions
+                continue
+
+            elif action == UserAction.EDIT:
+                current_message = self._edit_commit_message(current_message)
+                # Show the updated message and continue loop
+                continue
+
+            elif action == UserAction.REGENERATE:
+                console.print("\n[bold blue]🔄 Regenerating commit message...[/bold blue]")
+                new_message = self._call_llm_api(llm_input)
+                if new_message:
+                    current_message = new_message
+                else:
+                    console.print("[yellow]⚠[/yellow] Failed to regenerate. Keeping current message.")
+                continue
+
+            elif action == UserAction.QUIT:
+                console.print("[yellow]⚠[/yellow] Commit cancelled by user.")
+                return None, False
+
+        return current_message, True
+
+    def _apply_commit(self, commit_message: CommitMessage, llm_input: LLMInput | None = None):
         """
         Stages all changed files (including excluded files) and then applies the commit.
         The LLM analysis only considered valid files to avoid noise, but we should commit
         all changed files including those that were manually staged or excluded from analysis.
         """
-        message_str = commit_message.to_git_message()
-        console.print(f"\n{message_str}\n", style="dim")
-
-        if not self.auto_add:
+        # Dry run mode: only display message and copy to clipboard
+        if self.dry_run:
+            self._display_commit_message(commit_message)
+            self._copy_to_clipboard(commit_message)
+            console.print("[dim]Dry run mode: no commit was made[/dim]")
             return
+
+        # Interactive mode: prompt for user action
+        if not self.auto_add:
+            if llm_input:
+                final_message, should_commit = self._interactive_confirm(commit_message, llm_input)
+                if not should_commit or final_message is None:
+                    return
+                commit_message = final_message
+                # Fall through to execute commit with confirmed message
+            else:
+                self._display_commit_message(commit_message)
+                self._copy_to_clipboard(commit_message)
+                return
+        else:
+            # Auto-add mode: show message
+            self._display_commit_message(commit_message)
+
+        # Execute commit with the message
+        message_str = commit_message.to_git_message()
 
         try:
             with console.status("[bold green]Applying commit changes..."):
@@ -672,8 +828,8 @@ class GitCommitGenerator:
                 console.print("[red]✗[/red] Failed to generate commit message.")
                 return
 
-            # 3. Apply the commit
-            self._apply_commit(commit_message_obj)
+            # 3. Apply the commit (pass llm_input for potential regeneration)
+            self._apply_commit(commit_message_obj, llm_input)
 
             console.print(
                 "[bold green]🎉 Smart commit process completed successfully![/bold green]"

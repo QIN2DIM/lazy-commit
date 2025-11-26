@@ -566,8 +566,24 @@ class GitCommitGenerator:
                             f"[dim]  • {len(excluded_from_analysis)} files excluded from analysis but included in commit: {', '.join(excluded_from_analysis[:3])}{'...' if len(excluded_from_analysis) > 3 else ''}[/dim]"
                         )
 
-                    # Stage all final files
-                    self._run_command(["git", "add"] + final_files)
+                    # Separate existing and deleted files for proper staging
+                    existing_files = []
+                    deleted_files = []
+
+                    for file_path in final_files:
+                        file_full_path = self.repo_path / file_path
+                        if file_full_path.exists():
+                            existing_files.append(file_path)
+                        else:
+                            deleted_files.append(file_path)
+
+                    # Stage existing files with git add
+                    if existing_files:
+                        self._run_command(["git", "add"] + existing_files)
+
+                    # Stage deleted files with git rm
+                    if deleted_files:
+                        self._run_command(["git", "rm"] + deleted_files)
                 else:
                     console.print("[yellow]⚠[/yellow] No files to commit.")
                     return

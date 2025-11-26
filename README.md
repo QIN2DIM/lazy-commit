@@ -47,7 +47,7 @@ export LAZY_COMMIT_OPENAI_MODEL_NAME="moonshotai/kimi-k2:free"
 # For Chinese users - free models via ModelScope
 export LAZY_COMMIT_OPENAI_BASE_URL="https://api-inference.modelscope.cn/v1"
 export LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"
-export LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-Coder-480B-A35B-Instruct"
+export LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 # Optional: Set maximum context size (default: 32000)
 export LAZY_COMMIT_MAX_CONTEXT_SIZE=32000
@@ -64,11 +64,11 @@ LAZY_COMMIT_OPENAI_API_KEY=sk-or-v1-xxx
 LAZY_COMMIT_OPENAI_MODEL_NAME=moonshotai/kimi-k2:free
 ```
 
-**For Chinese users - [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-Coder-480B-A35B-Instruct) (free models):**
+**For Chinese users - [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-30B-A3B-Instruct-2507) (free models):**
 ```env
 LAZY_COMMIT_OPENAI_BASE_URL="https://api-inference.modelscope.cn/v1"
 LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"
-LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-Coder-480B-A35B-Instruct"
+LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-30B-A3B-Instruct-2507"
 ```
 
 ## Usage

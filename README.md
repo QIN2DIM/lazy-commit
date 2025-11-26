@@ -21,6 +21,10 @@ A smart git commit message generator that uses AI to create high-quality commit 
 uv tool install lazy-commit
 ```
 
+```bash
+uv tool upgrade lazy-commit
+```
+
 ### From source
 
 ```bash

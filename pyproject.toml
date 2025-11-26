@@ -1,6 +1,6 @@
 [project]
 name = "lazy-commit"
-version = "0.1.5"
+version = "0.1.6"
 description = "A git commit message generator for personal use."
 readme = "README.md"
 authors = [

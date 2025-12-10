@@ -22,6 +22,8 @@ from rich.text import Text
 from smart_commit.models import CommitMessage, LLMInput
 from smart_commit.prompts import SYSTEM_INSTRUCTIONS, USER_PROMPT_TEMPLATE
 from smart_commit.settings import settings
+from smart_commit._tun import get_lan_http_client
+
 
 # Files to exclude from LLM analysis (diff generation) but still allow in commits
 # These files create noise in commit message generation due to their verbose changes
@@ -55,9 +57,11 @@ class GitCommitGenerator:
             self.auto_push = auto_push
             self.auto_add = auto_add
 
+            base_url = settings.LAZY_COMMIT_OPENAI_BASE_URL
             self._client = OpenAI(
                 api_key=settings.LAZY_COMMIT_OPENAI_API_KEY.get_secret_value(),
-                base_url=settings.LAZY_COMMIT_OPENAI_BASE_URL,
+                base_url=base_url,
+                http_client=get_lan_http_client(base_url) if base_url else None,
             )
             self._model = settings.LAZY_COMMIT_OPENAI_MODEL_NAME
 

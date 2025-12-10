@@ -55,6 +55,10 @@ export LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 # Optional: Set maximum context size (default: 32000)
 export LAZY_COMMIT_MAX_CONTEXT_SIZE=32000
+
+# Optional: Bypass system proxy for LAN endpoints (default: false)
+# Useful when accessing internal model endpoints via VPN
+export LAZY_COMMIT_BYPASS_PROXY=true
 ```
 
 ### Environment File

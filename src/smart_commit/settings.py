@@ -27,6 +27,14 @@ class SmartCommitSettings(BaseSettings):
     LAZY_COMMIT_MAX_CONTEXT_SIZE: int = Field(
         default=32000, description="Maximum context length (number of characters), 30k", gt=512
     )
+    LAZY_COMMIT_BYPASS_PROXY: bool = Field(
+        default=False,
+        description="""
+        When set to True, LAN endpoints (private IP addresses like 10.x, 172.16-31.x, 192.168.x)
+        will bypass system proxy and TUN mode (e.g., Clash-Meta). Useful when accessing internal
+        model endpoints via VPN that would otherwise be intercepted by proxy software.
+        """,
+    )
 
     def model_post_init(self, context: Any, /) -> None:
         if not self.LAZY_COMMIT_OPENAI_BASE_URL or self.LAZY_COMMIT_OPENAI_BASE_URL in [

@@ -6,6 +6,7 @@ A smart git commit message generator that uses AI to create high-quality commit 
 
 - 🤖 **AI-Powered**: Uses OpenAI-compatible APIs to generate intelligent commit messages
 - 📝 **Conventional Commits**: Follows the Conventional Commits specification format
+- 🌐 **Multi-Language Support**: Generate commit messages in any natural language (English, 简体中文, 日本語, etc.)
 - 🎯 **Smart File Analysis**: Automatically analyzes changed files and generates appropriate diffs
 - 🚫 **Intelligent Filtering**: Excludes lock files and binary files from analysis while still including them in commits
 - ⚡ **Context Compression**: Automatically compresses large diffs to fit within token limits
@@ -59,6 +60,10 @@ export LAZY_COMMIT_MAX_CONTEXT_SIZE=32000
 # Optional: Bypass system proxy for LAN endpoints (default: false)
 # Useful when accessing internal model endpoints via VPN
 export LAZY_COMMIT_BYPASS_PROXY=true
+
+# Optional: Set the language for commit messages (default: English)
+# Supports any natural language like "English", "简体中文", "日本語", "Español", etc.
+export LAZY_COMMIT_LANGUAGE="简体中文"
 ```
 
 ### Environment File
@@ -70,6 +75,7 @@ You can also create a `.env` file in your project root:
 LAZY_COMMIT_OPENAI_BASE_URL=https://openrouter.ai/api/v1
 LAZY_COMMIT_OPENAI_API_KEY=sk-or-v1-xxx
 LAZY_COMMIT_OPENAI_MODEL_NAME=moonshotai/kimi-k2:free
+LAZY_COMMIT_LANGUAGE=English
 ```
 
 **For Chinese users - [ModelScope](https://www.modelscope.cn/models/Qwen/Qwen3-30B-A3B-Instruct-2507) (free models):**
@@ -77,7 +83,38 @@ LAZY_COMMIT_OPENAI_MODEL_NAME=moonshotai/kimi-k2:free
 LAZY_COMMIT_OPENAI_BASE_URL="https://api-inference.modelscope.cn/v1"
 LAZY_COMMIT_OPENAI_API_KEY="ms-xxx"
 LAZY_COMMIT_OPENAI_MODEL_NAME="Qwen/Qwen3-30B-A3B-Instruct-2507"
+LAZY_COMMIT_LANGUAGE=简体中文
 ```
+
+## Language Configuration
+
+You can generate commit messages in any natural language by setting the `LAZY_COMMIT_LANGUAGE` environment variable.
+
+### Supported Languages
+
+The tool supports any natural language. Simply specify the language name in your preferred format:
+
+```bash
+# English (default)
+export LAZY_COMMIT_LANGUAGE="English"
+
+# Simplified Chinese
+export LAZY_COMMIT_LANGUAGE="简体中文"
+
+# Japanese
+export LAZY_COMMIT_LANGUAGE="日本語"
+
+# Spanish
+export LAZY_COMMIT_LANGUAGE="Español"
+
+# French
+export LAZY_COMMIT_LANGUAGE="Français"
+
+# German
+export LAZY_COMMIT_LANGUAGE="Deutsch"
+```
+
+The AI model will automatically generate commit messages in the specified language, including both the title and body.
 
 ## Usage
 

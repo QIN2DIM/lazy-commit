@@ -5,6 +5,7 @@
 @GitHub  : https://github.com/QIN2DIM
 @Desc    :
 """
+
 import fnmatch
 import re
 import subprocess
@@ -19,11 +20,10 @@ from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUs
 from rich.console import Console
 from rich.text import Text
 
-from smart_commit.models import CommitMessage, LLMInput
-from smart_commit.prompts import SYSTEM_INSTRUCTIONS, USER_PROMPT_TEMPLATE
-from smart_commit.settings import settings
 from smart_commit._tun import get_lan_http_client
-
+from smart_commit.models import CommitMessage, LLMInput
+from smart_commit.prompts import SYSTEM_INSTRUCTIONS_TEMPLATE, USER_PROMPT_TEMPLATE
+from smart_commit.settings import settings
 
 # Files to exclude from LLM analysis (diff generation) but still allow in commits
 # These files create noise in commit message generation due to their verbose changes
@@ -147,10 +147,15 @@ class GitCommitGenerator:
     def _call_llm_api(self, llm_input: LLMInput) -> CommitMessage | None:
         with console.status("[bold blue]Generating commit message with LLM..."):
             user_prompt = USER_PROMPT_TEMPLATE.format(
-                branch_name=llm_input.git_branch_name, diff_content=llm_input.diff_content
+                branch_name=llm_input.git_branch_name,
+                diff_content=llm_input.diff_content,
+                language=settings.LAZY_COMMIT_LANGUAGE,
+            )
+            system_prompt = SYSTEM_INSTRUCTIONS_TEMPLATE.format(
+                language=settings.LAZY_COMMIT_LANGUAGE
             )
             messages = [
-                ChatCompletionSystemMessageParam(role="system", content=SYSTEM_INSTRUCTIONS),
+                ChatCompletionSystemMessageParam(role="system", content=system_prompt),
                 ChatCompletionUserMessageParam(role="user", content=user_prompt),
             ]
 
@@ -160,6 +165,11 @@ class GitCommitGenerator:
                 response_format=CommitMessage,
                 temperature=0,
                 timeout=50,
+                extra_body={
+                    "chat_template_kwargs": {"enable_thinking": False, "thinking": False},
+                    "enable_thinking": False,
+                    "thinking": False,
+                },
             )
         console.print("[green]✓[/green] Commit message generated successfully")
         return completion.choices[0].message.parsed

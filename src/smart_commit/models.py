@@ -41,10 +41,18 @@ class LLMInput(BaseModel):
 class CommitMessage(BaseModel):
     """Structured output for the generated commit message."""
 
-    type: str = Field(..., description="Commit type (e.g., 'feat', 'fix').")
-    scope: str | None = Field(default=None, description="Optional scope of the changes.")
-    title: str = Field(..., description="Short, imperative-mood title.")
-    body: str | None = Field(default=None, description="Detailed explanation of the changes.")
+    type: str = Field(description="Commit type (e.g., 'feat', 'fix'). Keep as standard English.")
+    scope: str | None = Field(
+        default=None,
+        description="Optional scope of the changes (code module name, usually in English).",
+    )
+    title: str = Field(
+        description="Short, imperative-mood title. MUST be written in the target language specified by the user."
+    )
+    body: str | None = Field(
+        default=None,
+        description="Detailed explanation of the changes. MUST be written in the target language specified by the user.",
+    )
 
     def to_git_message(self) -> str:
         """Formats the object into a git-commit-ready string."""
@@ -82,10 +90,20 @@ class CommitMessage(BaseModel):
             body_text.append(self.body, style="dim white")
             content_parts.append(body_text)
 
-        # Create panel with styled border
+        # Create panel with styled border and max width for better appearance
+        content_group = Group(*content_parts)
+
+        # Calculate content width: find the longest line in the commit message
+        # Account for padding (2 on each side) and some margin
+        lines = self.to_git_message().split("\n")
+        max_content_width = max(len(line) for line in lines) if lines else 0
+        # Add padding (4 chars total: 2 on left + 2 on right) + border (2 chars)
+        panel_width = min(100, max(60, max_content_width + 6))
+
         return Panel(
-            Group(*content_parts),
+            content_group,
             title="[bold bright_white]📋 Generated Commit Message[/bold bright_white]",
             border_style=type_style["color"],
             padding=(1, 2),
+            width=panel_width,
         )

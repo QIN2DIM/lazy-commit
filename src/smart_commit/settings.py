@@ -35,6 +35,14 @@ class SmartCommitSettings(BaseSettings):
         model endpoints via VPN that would otherwise be intercepted by proxy software.
         """,
     )
+    LAZY_COMMIT_LANGUAGE: str = Field(
+        default="English",
+        description="""
+        The language used for generating commit messages.
+        You can set it to any natural language like "English", "简体中文", "日本語", etc.
+        The model will understand and generate commit messages in the specified language.
+        """,
+    )
 
     def model_post_init(self, context: Any, /) -> None:
         if not self.LAZY_COMMIT_OPENAI_BASE_URL or self.LAZY_COMMIT_OPENAI_BASE_URL in [

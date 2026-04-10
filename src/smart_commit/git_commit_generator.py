@@ -104,18 +104,11 @@ class GitCommitGenerator:
             raise ValueError("This script must be run from within a Git repository.")
 
     @staticmethod
-    def _is_ignored_or_excluded(file_path: str, ignore_patterns: List[str]) -> bool:
-        """Check if a file path matches any ignore pattern or should be excluded."""
-        # Check .gitignore patterns
-        for pattern in ignore_patterns:
-            if fnmatch.fnmatch(file_path, pattern):
-                return True
-
-        # Check excluded file patterns
+    def _is_excluded(file_path: str) -> bool:
+        """Check if a file path should be excluded from LLM analysis (e.g. lock files)."""
         for pattern in EXCLUDED_FILE_PATTERNS:
             if fnmatch.fnmatch(file_path, pattern):
                 return True
-
         return False
 
     @staticmethod
@@ -204,26 +197,12 @@ class GitCommitGenerator:
             )
             raise
 
-    def _get_ignore_patterns(self) -> List[str]:
-        """Reads .gitignore and .dockerignore and returns a list of patterns."""
-        patterns = []
-        for ignore_file in [".gitignore", ".dockerignore"]:
-            path = self.repo_path / ignore_file
-            if path.exists():
-                console.print(f"[dim]Reading ignore patterns from '{path}'[/dim]")
-                with open(path, "r", encoding="utf8") as f:
-                    patterns.extend(
-                        line.strip() for line in f if line.strip() and not line.startswith("#")
-                    )
-        return patterns
-
     def _get_valid_files(self) -> List[str]:
         """
         Get list of files that should be included in the diff analysis.
-        Excludes ignored files and special files completely.
+        Excludes special files (e.g. lock files) that create noise for the LLM,
+        but respects git's own ignore handling for dotfiles.
         """
-        ignore_patterns = self._get_ignore_patterns()
-
         # Get all changed files (modified + untracked)
         all_files = []
 
@@ -238,7 +217,7 @@ class GitCommitGenerator:
             if modified_files.strip():
                 all_files.extend(f.strip() for f in modified_files.split("\n") if f.strip())
 
-        # Get untracked files
+        # Get untracked files (git already respects .gitignore via --exclude-standard)
         try:
             untracked_files = self._run_command(
                 ["git", "ls-files", "--others", "--exclude-standard"]
@@ -248,12 +227,12 @@ class GitCommitGenerator:
         except subprocess.CalledProcessError:
             pass
 
-        # Filter out ignored and excluded files
+        # Filter out excluded file patterns only (e.g. lock files)
         valid_files = []
         excluded_files = []
 
         for file_path in set(all_files):  # Remove duplicates
-            if self._is_ignored_or_excluded(file_path, ignore_patterns):
+            if self._is_excluded(file_path):
                 excluded_files.append(file_path)
             else:
                 valid_files.append(file_path)
@@ -578,20 +557,11 @@ class GitCommitGenerator:
                 except subprocess.CalledProcessError:
                     pass
 
-                # Remove duplicates and filter out .gitignore patterns (but keep excluded patterns)
-                ignore_patterns = self._get_ignore_patterns()
-                final_files = []
-
-                for file_path in set(all_changed_files):
-                    # Only filter out .gitignore patterns, but keep EXCLUDED_FILE_PATTERNS
-                    is_gitignored = False
-                    for pattern in ignore_patterns:
-                        if fnmatch.fnmatch(file_path, pattern):
-                            is_gitignored = True
-                            break
-
-                    if not is_gitignored:
-                        final_files.append(file_path)
+                # Remove duplicates; trust git's own ignore handling. We do NOT re-parse
+                # .gitignore with fnmatch here, because fnmatch cannot accurately reproduce
+                # git's ignore semantics (negation, directory rules, etc.). This fixes the bug
+                # where tracked dotfiles like .gitlab.yml were wrongly skipped.
+                final_files = list(set(all_changed_files))
 
                 if final_files:
                     # Show what files will be committed

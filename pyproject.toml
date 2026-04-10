@@ -1,6 +1,6 @@
 [project]
 name = "lazy-commit"
-version = "0.2.0"
+version = "0.2.1"
 description = "A git commit message generator for personal use."
 readme = "README.md"
 authors = [
@@ -44,5 +44,6 @@ source = "uv-dynamic-versioning"
 [dependency-groups]
 dev = [
     "black>=25.1.0",
+    "pip>=26.0.1",
     "ruff>=0.12.4",
 ]

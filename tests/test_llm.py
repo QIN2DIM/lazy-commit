@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-import httpx
+import httpx2
 import openai
 import pytest
 
@@ -12,7 +12,7 @@ from smart_commit.settings import SmartCommitSettings
 
 
 def bad_request(message: str) -> openai.BadRequestError:
-    response = httpx.Response(400, request=httpx.Request("POST", "http://test/v1"))
+    response = httpx2.Response(400, request=httpx2.Request("POST", "http://test/v1"))
     return openai.BadRequestError(message, response=response, body=None)
 
 
@@ -80,7 +80,7 @@ def test_falls_back_to_json_mode_then_plain_text():
 
 def test_api_errors_become_user_errors():
     completions = FakeCompletions(
-        parse=openai.APIConnectionError(request=httpx.Request("POST", "http://x"))
+        parse=openai.APIConnectionError(request=httpx2.Request("POST", "http://x"))
     )
     with pytest.raises(LazyCommitError, match="LLM request failed"):
         generator(completions).generate(LLM_INPUT)
@@ -164,6 +164,6 @@ def test_lan_client_only_when_bypass_enabled():
 
     assert get_lan_http_client("http://10.0.0.2/v1", bypass_proxy=False) is None
     assert get_lan_http_client("https://api.example.com/v1", bypass_proxy=True) is None
-    client = get_lan_http_client("http://10.0.0.2/v1", bypass_proxy=True, timeout=httpx.Timeout(5))
+    client = get_lan_http_client("http://10.0.0.2/v1", bypass_proxy=True, timeout=httpx2.Timeout(5))
     assert client.trust_env is False
     assert client.timeout.connect == 5

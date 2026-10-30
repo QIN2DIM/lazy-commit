@@ -1,6 +1,6 @@
 [project]
 name = "lazy-commit"
-version = "0.2.2"
+version = "0.2.3"
 description = "A git commit message generator for personal use."
 readme = "README.md"
 authors = [
@@ -8,13 +8,14 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "openai>=1.97.0",
-    "pydantic-settings>=2.10.1",
-    "python-dotenv>=1.0.0",
-    "tiktoken>=0.9.0",
-    "rich>=13.0.0",
-    "typer>=0.16.0",
-    "pyperclip>=1.9.0",
+    "openai>=3.41.0",
+    "pydantic-settings>=2.16.2",
+    "python-dotenv>=1.2.4",
+    "tiktoken>=0.14.0",
+    "rich>=15.0.0",
+    "typer>=0.27.0",
+    "pyperclip>=1.11.0",
+    "httpx2>=2.16.0",
 ]
 
 [build-system]

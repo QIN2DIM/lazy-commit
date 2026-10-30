@@ -5,89 +5,70 @@
 @GitHub  : https://github.com/QIN2DIM
 @Desc    : LAN proxy bypass utility for accessing internal endpoints.
 """
+import ipaddress
 from urllib.parse import urlparse
 
 import httpx
-
-from smart_commit.settings import settings
-
+from openai import DefaultHttpxClient
 
 # ======================== LAN Proxy Bypass Configuration ======================== #
 # TUN mode (e.g., Clash-Meta) may intercept traffic to internal LAN endpoints.
 # When LAZY_COMMIT_BYPASS_PROXY=true, LAN endpoints bypass system proxy for direct
 # VPN access. Set via environment variable; defaults to False (no bypass).
 
-# Private IP ranges (RFC 1918) - commonly used for internal networks
-_PRIVATE_IP_PREFIXES = (
-    "10.",
-    "172.16.",
-    "172.17.",
-    "172.18.",
-    "172.19.",
-    "172.20.",
-    "172.21.",
-    "172.22.",
-    "172.23.",
-    "172.24.",
-    "172.25.",
-    "172.26.",
-    "172.27.",
-    "172.28.",
-    "172.29.",
-    "172.30.",
-    "172.31.",
-    "192.168.",
-)
+# Carrier-grade NAT range, used by overlay VPNs such as Tailscale. Not covered by is_private.
+_CGNAT_NETWORK = ipaddress.ip_network("100.64.0.0/10")
 
 
 def _is_lan_endpoint(url: str) -> bool:
     """
-    Check if a URL points to a private LAN IP address.
+    Check if a URL points to a private, loopback or VPN overlay IP address.
 
     Args:
         url: The URL to check
 
     Returns:
-        True if the URL's host is a private IP address.
+        True if the URL's host is such an address (or "localhost").
     """
+    host = urlparse(url).hostname or ""
+    if host == "localhost":
+        return True
     try:
-        parsed = urlparse(url)
-        host = parsed.hostname or ""
-        return host.startswith(_PRIVATE_IP_PREFIXES) or host == "localhost"
-    except Exception:
+        ip = ipaddress.ip_address(host)
+    except ValueError:  # a domain name
         return False
+    return ip.is_private or ip.is_loopback or ip in _CGNAT_NETWORK
 
 
 def get_lan_http_client(
-    base_url: str, *, timeout: httpx.Timeout | None = None, **kwargs
-) -> httpx.Client:
+    base_url: str, *, bypass_proxy: bool, timeout: httpx.Timeout | None = None, **kwargs
+) -> httpx.Client | None:
     """
-    Create a synchronous httpx.Client configured for LAN endpoints.
+    Create a synchronous httpx.Client that bypasses the system proxy for LAN endpoints.
 
-    When LAZY_COMMIT_BYPASS_PROXY=true and the base_url points to a LAN IP,
-    the client bypasses system proxy (TUN mode). This ensures VPN connections
-    to internal model endpoints are not intercepted by proxy software.
-
-    By default (LAZY_COMMIT_BYPASS_PROXY=false), uses standard httpx behavior.
+    When bypass_proxy is enabled and the base_url points to a LAN IP, the client bypasses
+    system proxy (TUN mode). This ensures VPN connections to internal model endpoints are
+    not intercepted by proxy software.
 
     Args:
         base_url: The API base URL to connect to.
+        bypass_proxy: Value of LAZY_COMMIT_BYPASS_PROXY.
         timeout: Optional httpx.Timeout configuration.
         **kwargs: Additional arguments passed to httpx.Client.
 
     Returns:
-        Configured httpx.Client instance.
+        A configured client, or None to let the OpenAI SDK use its default client.
 
     Usage:
-        # Set LAZY_COMMIT_BYPASS_PROXY=true in environment, then:
-        http_client = get_lan_http_client_sync(base_url, timeout=timeout)
+        http_client = get_lan_http_client(base_url, bypass_proxy=True)
         client = OpenAI(base_url=base_url, http_client=http_client, ...)
     """
-    # Only bypass proxy when explicitly enabled via environment variable
-    if settings.LAZY_COMMIT_BYPASS_PROXY and _is_lan_endpoint(base_url):
-        # proxy=None + trust_env=False completely bypasses system proxy settings
-        # This ensures direct connection via VPN interface, not intercepted by TUN
-        return httpx.Client(timeout=timeout, proxy=None, trust_env=False, **kwargs)
+    if not (bypass_proxy and _is_lan_endpoint(base_url)):
+        return None
 
-    # Default behavior: use system proxy settings
-    return httpx.Client(timeout=timeout, **kwargs)
+    # proxy=None + trust_env=False completely bypasses system proxy settings
+    # This ensures direct connection via VPN interface, not intercepted by TUN
+    if timeout is not None:
+        kwargs["timeout"] = timeout
+    # DefaultHttpxClient keeps the SDK's own defaults (connection limits, redirects, ...)
+    return DefaultHttpxClient(proxy=None, trust_env=False, **kwargs)

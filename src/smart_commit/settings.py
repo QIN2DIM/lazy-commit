@@ -6,6 +6,8 @@ from pydantic_settings import SettingsConfigDict, BaseSettings
 
 dotenv.load_dotenv()
 
+OPENAI_BASE_URL = "https://api.openai.com/v1"
+
 
 class SmartCommitSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
@@ -25,7 +27,23 @@ class SmartCommitSettings(BaseSettings):
         default=None, description="When calling the local model, this value can be empty"
     )
     LAZY_COMMIT_MAX_CONTEXT_SIZE: int = Field(
-        default=32000, description="Maximum context length (number of characters), 30k", gt=512
+        default=32000, description="Token budget for the diff sent to the model", gt=512
+    )
+    LAZY_COMMIT_TIMEOUT: float = Field(
+        default=120,
+        description="""
+        Timeout in seconds for one LLM request. Responses aren't streamed, so this bounds the
+        whole generation: reasoning models and local models on large diffs need the headroom.
+        """,
+        gt=0,
+    )
+    LAZY_COMMIT_EXCLUDE_PATTERNS: str = Field(
+        default="",
+        description="""
+        Extra comma-separated glob patterns to leave out of the analyzed diff, on top of
+        the built-in lock file patterns, e.g. "*.snap,generated/*". Patterns without "/"
+        match the file name in any directory.
+        """,
     )
     LAZY_COMMIT_BYPASS_PROXY: bool = Field(
         default=False,
@@ -44,12 +62,15 @@ class SmartCommitSettings(BaseSettings):
         """,
     )
 
+    @property
+    def is_official_openai(self) -> bool:
+        return self.LAZY_COMMIT_OPENAI_BASE_URL in (None, OPENAI_BASE_URL)
+
     def model_post_init(self, context: Any, /) -> None:
-        if not self.LAZY_COMMIT_OPENAI_BASE_URL or self.LAZY_COMMIT_OPENAI_BASE_URL in [
-            "https://api.openai.com/v1"
-        ]:
+        if self.is_official_openai:
             if not self.LAZY_COMMIT_OPENAI_MODEL_NAME:
                 self.LAZY_COMMIT_OPENAI_MODEL_NAME = "gpt-4.1-mini"
+            return
 
         if not self.LAZY_COMMIT_OPENAI_API_KEY:
             self.LAZY_COMMIT_OPENAI_API_KEY = SecretStr("local-model-api-key")

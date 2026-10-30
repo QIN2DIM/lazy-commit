@@ -16,7 +16,7 @@ You MUST generate the ENTIRE commit message in the following language: **{langua
 **1. Title:**
 
    - Format: `<type>(<scope>): <title>`
-   - `type`: Must be one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+   - `type`: Must be one of: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
    - `scope` (optional): The part of the codebase affected (e.g., `api`, `ui`, `db`).
    - `title`: A short summary of the change, in imperative mood, written in **{language}**.
 
@@ -80,7 +80,8 @@ If the target language is {language}:
 
 ---
 
-Now, based on the provided git changes, generate a commit message in the specified JSON format.
+Now, based on the provided git changes, generate a commit message as a JSON object with the
+keys `type`, `scope`, `title` and `body`, exactly like the examples above.
 """
 
 USER_PROMPT_TEMPLATE = """
@@ -90,12 +91,27 @@ TARGET LANGUAGE: {language}
 
 ## Git Branch Name:
 {branch_name}
-
-## Staged Changes (git diff --staged):
+{extra_sections}
+## Changes to Commit ({diff_source}):
 ```diff
 {diff_content}
 ```
 
 ## Your Task:
 Provide the commit message as a single JSON object, following the rules and format specified in the system instructions. Do not add any text before or after the JSON object.
+"""
+
+RECENT_COMMITS_SECTION = """
+## Recent Commits (follow their conventions, e.g. scope names, unless they conflict with the rules):
+{commits}
+"""
+
+EXCLUDED_FILES_SECTION = """
+## Also Changed, Diff Omitted (lock files or generated files):
+{files}
+"""
+
+HINT_SECTION = """
+## Context From the Author (use it to explain the "why"):
+{hint}
 """

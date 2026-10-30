@@ -1,5 +1,4 @@
-# Agent Guidelines
-
+Rules:
 - **Python Execution**: Run Python commands and scripts through `uv` (e.g., `uv run`), whether working with project files or running Python scripts bundled in skills.
 - **Verification Strategy**: Feel free to write and run lightweight ad-hoc commands or temporary scripts to verify changes by default, and reserve creating, saving, or running `pytest` suites for when explicitly requested by the user.
 - **Workspace Scope**: Keep all file creation and modifications within the current project directory, placing any temporary scripts or scratch files inside `./.cache/`.
